@@ -1,7 +1,11 @@
 use bigdecimal::BigDecimal;
 use engine::{Level2View, OrderBook, Side};
 use server::{ClientId, OrderId, Price, Quantity, ToClient, ToServer};
-use std::{collections::HashMap, io,io::{stdout,Write}};
+use std::{
+    collections::HashMap,
+    io,
+    io::{stdout, Write},
+};
 use tokio::{
     io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
@@ -37,19 +41,16 @@ async fn server_loop(mut events: mpsc::UnboundedReceiver<ToOrderManager>) {
 
                         order_counter += 1;
 
-                        //ALso send the updated depth to all clients!
                         let quantity = order_book.get_size_for_price_level(side, price.clone());
                         for (_, to_client) in &clients {
                             if let Err(err) =
                                 to_client.send(ToClient::LatestDepth(side, quantity, price.as_bigint_and_exponent()))
                             {
-                                //Handle error sending to client..
                                 println!("Could not send to client {:?}", err);
                             }
                         }
                     }
                     ToOrderManager::ClientConnected(to_client) => {
-                        //Cool let assign the new client an id!
                         if let Err(err) = to_client.send(ToClient::Connected(client_counter)) {
                             println!("Could not connect with client.. {:?}", err);
                             continue;
@@ -58,7 +59,6 @@ async fn server_loop(mut events: mpsc::UnboundedReceiver<ToOrderManager>) {
                         client_counter += 1;
                     }
                     ToOrderManager::ClientDisconnected(client_id) => {
-                        //Cleanup all orders
                         if let Some(client_orders) = client_orders.get(&client_id) {
                             for cancel_order in client_orders {
                                 order_book.on_cancel_order(*cancel_order);
@@ -86,7 +86,7 @@ async fn server_loop(mut events: mpsc::UnboundedReceiver<ToOrderManager>) {
             }
             _ = heartbeat.tick() => {
                 io::stdout().flush().unwrap();
-                print!("\rConnected Clients : {:?}",clients.len());
+                print!("\rConnected clients: {:?}",clients.len());
             }
         }
     }
@@ -95,7 +95,7 @@ async fn client_loop(to_server: UnboundedSender<ToOrderManager>, mut socket: Tcp
     let (client_tx, mut client_rx) = mpsc::unbounded_channel();
     let connect_msg = ToOrderManager::ClientConnected(client_tx);
     if let Err(_) = to_server.send(connect_msg) {
-        println!("Could not connect with server");
+        println!("Could not connect to server");
     }
     let mut client_id: Option<ClientId> = None;
     loop {
@@ -109,7 +109,7 @@ async fn client_loop(to_server: UnboundedSender<ToOrderManager>, mut socket: Tcp
                         continue;
                     }
                     Err(e) => {
-                        println!("failed to read from socket; err = {:?}", e);
+                        println!("Failed to read from socket; err = {:?}", e);
                         break;
                     }
                 };

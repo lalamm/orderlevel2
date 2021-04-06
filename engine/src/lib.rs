@@ -17,15 +17,12 @@ pub trait Level2View {
     fn on_new_order(&mut self, side: Side, price: BigDecimal, quantity: usize, order_id: usize);
     fn on_cancel_order(&mut self, order_id: usize);
     fn on_replace_order(&mut self, price: BigDecimal, quantity: Quantity, order_id: usize);
-    // When an aggressor order crosses the spread, it will be matched with an existing resting order, causing a trade.
-    // The aggressor order will NOT cause an invocation of onNewOrder.
     fn on_trade(&mut self, quantity: usize, resting_order_id: usize);
     fn get_size_for_price_level(&mut self, side: Side, price: BigDecimal) -> usize;
     fn get_book_depth(&self, side: Side) -> usize;
     fn get_top_of_book(&self, side: Side) -> BigDecimal;
 }
 
-/// BTreeMap looks like a good fit when reading [here](https://doc.rust-lang.org/std/collections/index.html)
 #[derive(Default)]
 pub struct OrderBook {
     bids: BTreeMap<BigDecimal, Quantity>,
@@ -47,9 +44,13 @@ impl Level2View for OrderBook {
         };
         let order_depth = book.entry(price.clone()).or_insert(0);
         *order_depth += quantity;
-        //Would like to use unstable here.. https://github.com/rust-lang/rust/issues/62633
-        if self.orders.insert(order_id, (side, price, quantity)).is_some() {
-            panic!("Order id is {} already present", order_id);
+        // TODO: Implement when merged into stable Rust https://github.com/rust-lang/rust/issues/62633
+        if self
+            .orders
+            .insert(order_id, (side, price, quantity))
+            .is_some()
+        {
+            panic!("Order id {} is already present", order_id);
         }
     }
 
@@ -57,14 +58,14 @@ impl Level2View for OrderBook {
         let (side, price, quantity) = self
             .orders
             .remove(&order_id)
-            .unwrap_or_else(|| panic!("Missing order_id {}", order_id));
+            .unwrap_or_else(|| panic!("Missing order id {}", order_id));
 
         let order_depth = match side {
             Side::Ask => &mut self.asks,
             Side::Bid => &mut self.bids,
         }
         .get_mut(&price)
-        .expect("Order was not in the order book");
+        .unwrap_or_else(|| panic!("Missing order id {} in order book", order_id));
         *order_depth -= quantity;
 
         if *order_depth == 0 {
@@ -80,19 +81,26 @@ impl Level2View for OrderBook {
         let current_order_side = self
             .orders
             .get(&order_id)
-            .unwrap_or_else( || panic!("Can't replace non existing order {}", order_id))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Can't replace order with non-existent order id {}",
+                    order_id
+                )
+            })
             .0;
         self.on_cancel_order(order_id);
         self.on_new_order(current_order_side, price, quantity, order_id);
     }
     fn on_trade(&mut self, quantity: usize, resting_order_id: usize) {
-        let (side, price, resting_quantity) = self.orders.get_mut(&resting_order_id).unwrap_or_else(
-            || panic!("Resting order id did not exist {}", resting_order_id),
-        );
+        let (side, price, resting_quantity) = self
+            .orders
+            .get_mut(&resting_order_id)
+            .unwrap_or_else(|| panic!("Resting order id did not exist {}", resting_order_id));
 
-        *resting_quantity = resting_quantity.checked_sub(quantity).expect("Can't trade more than available quantity");
+        *resting_quantity = resting_quantity
+            .checked_sub(quantity)
+            .expect("Can't trade more than available quantity");
 
-        //Also subtract from book
         let book = match side {
             Side::Ask => &mut self.asks,
             Side::Bid => &mut self.bids,
@@ -118,14 +126,14 @@ impl Level2View for OrderBook {
     }
 
     fn get_top_of_book(&self, side: Side) -> BigDecimal {
-        // TODO:implement When merged into stable rust  https://github.com/rust-lang/rust/issues/62924
+        // TODO: Implement when merged into stable Rust https://github.com/rust-lang/rust/issues/62924
         match side {
             Side::Bid => self.bids.iter().rev().next(),
             Side::Ask => self.asks.iter().next(),
         }
         .expect("Order book is empty")
         .0
-        .clone() //Does not impl copy
+        .clone()
     }
 }
 

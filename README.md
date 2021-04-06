@@ -3,28 +3,37 @@
 **A simple level 2 order book built in Rust.**
 
 ---
-You can find the order book in the engine folder.
+You can find the order book in the `engine` folder.
 
-Run the test and look at the documentation with the following commands
+## Dependencies
+* `Rust v1.51.0` or higher
+
+## Usage 
+Run the tests
 ```
 cargo t
+```
+
+Look at the documentation
+```
 cargo doc --open
 ```
-But it felt boring with an empty order book so i also begin working on a cli for trading :) 
 
-Run it like this
+## Extra: Cli
+Since it felt boring with an empty order book I've also created a simple cli. To use it, start a server in one terminal window and at least one client in another window.
+
+Start a server
 ```
-git clone git@github.com:lalamm/orderlevel2.git
-//Start the server
 cargo r --bin server --release
-// Start 2 clients in new terminals
-cargo r --bin client --release
+```
+
+Start a client
+```
 cargo r --bin client --release
 ```
-It's not fully featured yet so you won't be able to trade.
+The cli can be used to place bids and orders but not for traiding.
 
-If you don't have access to Rust i made this gif showcasing it.
-
+Here's a gif showing the cli with one server and three clients
 ![](trading_cli.gif)
 
 cheerio

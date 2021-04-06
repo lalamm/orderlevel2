@@ -19,18 +19,17 @@ use tui::{
     Terminal,
 };
 const HELP_TEXT: &str = "Welcome! Here are the commands 
-To exit the application : <ESC> 
+To exit the application: <ESC>
 Place a sell order at asking price 10 and 2 quantities: Ask -p 10 -q 2 
 Place a buy order at bidding price 9 and 3 quantities: Bid -p 9.9 -q 3 
-Get book depth : Depth -s Ask 
-Get Size for price level : Size -s Ask -p 12.2
-Get top of book : Top -s Ask
-Spam a lot of orders (type loco again to stop) : loco
+Get book depth: Depth -s Ask 
+Get Size for price level: Size -s Ask -p 12.2
+Get top of book: Top -s Ask
+Spam a lot of orders (type loco again to stop): loco
 ";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // Connect to a peer
     let mut socket = TcpStream::connect("127.0.0.1:8080").await?;
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
@@ -68,7 +67,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                 .split(chunks[1]);
-
 
             let bar_charts_area = Layout::default()
                 .direction(Direction::Horizontal)

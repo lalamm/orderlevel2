@@ -2,7 +2,8 @@ use bigdecimal::BigDecimal;
 use engine::Side;
 use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
-/// Protocol how to talk to the server
+
+/// Protocol for which messages the server can receive
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ToServer {
     GetBookDepth(engine::Side),
@@ -11,7 +12,7 @@ pub enum ToServer {
     GetSizeForPriceLevel(engine::Side, (BigInt, i64)),
 }
 
-//Protocol for which messages the client can receive from the server
+/// Protocol for which messages the server can emit
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ToClient {
     Connected(ClientId),
